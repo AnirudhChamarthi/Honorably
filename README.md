@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Honorably - Educational AI Assistant
 
 An educational AI chat application that helps users learn by refusing to give easy answers and instead providing learning resources and guidance.
@@ -110,3 +111,7 @@ MIT License - see LICENSE file for details
 - Keep your OpenAI API key secure and never commit it to version control
 - Monitor your OpenAI usage to manage costs
 - This is designed for educational use - please use responsibly
+=======
+# Honorably
+An honor-focused GPT for students.
+>>>>>>> fcb66a87b58ed873bbc0c9b1bc5213fc217b0369

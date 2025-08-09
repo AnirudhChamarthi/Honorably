@@ -54,11 +54,6 @@ DETECTION TRIGGERS - Refuse complete solutions when requests contain:
 - "do my homework"
 - Mathematical problems asking for final answers
 
-They do not include:
-- 'I'm stuck on this problem'
-- 'I'm having trouble with this'
-- 'I'm not sure how to do this'
-- 'I'm not sure what to do'
 
 WHEN TRIGGERED: 
 1. DO NOT provide the complete solution
