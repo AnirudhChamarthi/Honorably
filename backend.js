@@ -2,6 +2,7 @@
 const express = require('express');      // Web server framework
 const OpenAI = require('openai');        // OpenAI API client library
 const cors = require('cors');            // Cross-origin resource sharing
+const rateLimit = require('express-rate-limit'); // Rate limiting middleware
 require('dotenv').config({ path: 'project.env' }); // Load environment variables from project.env file
 
 // === SERVER INITIALIZATION ===
@@ -10,10 +11,37 @@ const PORT = process.env.PORT || 3000;   // Set port from environment or default
 
 // === MIDDLEWARE SETUP ===
 // These run before every request
-app.use(express.json());                 // Parse JSON request bodies
-app.use(cors());                         // Allow requests from any origin (frontend)
+app.use(express.json({ limit: '1mb' })); // Parse JSON request bodies with size limit
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3001', // Restrict CORS to your frontend
+  credentials: true
+}));
+
+// === RATE LIMITING ===
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 50, // Limit each IP to 50 requests per windowMs
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: '1 minute'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', limiter); // Apply rate limiting to all API routes
 
 // === OPENAI CLIENT SETUP ===
+// Validate API key exists and has correct format
+if (!process.env.OPENAI_API_KEY) {
+  console.error('❌ OPENAI_API_KEY is required in project.env file');
+  process.exit(1);
+}
+
+if (!process.env.OPENAI_API_KEY.startsWith('sk-')) {
+  console.error('❌ Invalid OPENAI_API_KEY format. Must start with "sk-"');
+  process.exit(1);
+}
+
 // This connects to OpenAI's servers using your API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,    // Your secret key from project.env file
@@ -68,13 +96,39 @@ NORMAL RESPONSES: For genuine learning questions, concept explanations, or clari
 
 ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
 
-    // === STEP 3: VALIDATE INPUT ===
+    // === STEP 3: VALIDATE AND SANITIZE INPUT ===
     // Make sure the user actually sent a message
     if (!message) {
       return res.status(400).json({ 
         error: 'Message is required' 
       });
     }
+
+    // Validate message length
+    if (message.length > 4000) {
+      return res.status(400).json({ 
+        error: 'Message too long. Maximum 4000 characters allowed.' 
+      });
+    }
+
+    // Validate maxTokens parameter
+    if (maxTokens < 1 || maxTokens > 1000) {
+      return res.status(400).json({ 
+        error: 'maxTokens must be between 1 and 1000' 
+      });
+    }
+
+    // Validate temperature parameter
+    if (temperature < 0 || temperature > 1) {
+      return res.status(400).json({ 
+        error: 'temperature must be between 0 and 1' 
+      });
+    }
+
+    // Basic sanitization - remove potentially harmful characters
+    const sanitizedMessage = message.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                                    .replace(/<[^>]*>/g, '')
+                                    .trim();
 
     // === STEP 4: BUILD CONVERSATION STRUCTURE ===
     // Create the conversation format that OpenAI expects
@@ -85,7 +139,7 @@ ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
       },
       {
         role: 'user',                    // Second message: User's actual question
-        content: message
+        content: sanitizedMessage        // Use sanitized message instead of raw input
       }
     ];
 
