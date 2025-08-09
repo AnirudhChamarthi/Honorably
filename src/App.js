@@ -81,10 +81,21 @@ function App() {
       // === STEP 4: HANDLE ERRORS GRACEFULLY ===
       console.error('Error calling backend:', error);   // Log error for debugging
       
-      // Show user-friendly error message in chat
+      let errorMessage = 'Sorry, I encountered an error. Please make sure the backend server is running on port 3000.';
+      
+      // Handle specific error types
+      if (error.response?.status === 400 && error.response?.data?.flagged) {
+        // Content moderation rejection (violent/criminal content only)
+        errorMessage = error.response.data.error;
+      } else if (error.response?.status === 429) {
+        // Rate limiting
+        errorMessage = 'Too many requests. Please wait a moment before trying again.';
+      }
+      
+      // Show appropriate error message in chat
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'Sorry, I encountered an error. Please make sure the backend server is running on port 3000.' 
+        content: errorMessage
       }]);
     } finally {
       setIsLoading(false);                               // Always hide typing indicator when done

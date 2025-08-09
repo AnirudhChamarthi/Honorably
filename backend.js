@@ -168,6 +168,42 @@ ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
                                     .replace(/<[^>]*>/g, '')
                                     .trim();
 
+    // === CONTENT MODERATION (OMNI-MODERATION) ===
+    // Using latest multimodal moderation model for enhanced safety
+    try {
+      const moderation = await openai.moderations.create({
+        model: "omni-moderation-latest",
+        input: [
+          { type: "text", text: sanitizedMessage }
+        ],
+      });
+
+      const moderationResult = moderation.results[0];
+
+      if (moderationResult.flagged) {
+        // Get flagged categories
+        const flaggedCategories = Object.keys(moderationResult.categories).filter(
+          key => moderationResult.categories[key]
+        );
+
+        // Block ALL content flagged by OpenAI moderation
+        console.log('🚨 Content flagged by moderation:', {
+          categories: flaggedCategories,
+          timestamp: new Date().toISOString()
+        });
+
+        return res.status(400).json({
+          error: 'Your message contains content that violates our usage policies. Please rephrase your question in a respectful and appropriate manner.',
+          flagged: true
+        });
+      }
+    } catch (moderationError) {
+      console.error('Moderation API error:', moderationError);
+      // Continue processing if moderation fails (don't block legitimate users)
+    }
+
+    
+
     // === STEP 4: BUILD CONVERSATION STRUCTURE ===
     // Create the conversation format that OpenAI expects
     const messages = [
