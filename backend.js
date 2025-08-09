@@ -171,6 +171,8 @@ ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
     // === CONTENT MODERATION (OMNI-MODERATION) ===
     // Using latest multimodal moderation model for enhanced safety
     try {
+      console.log('🔍 Checking moderation for message...');
+      
       const moderation = await openai.moderations.create({
         model: "omni-moderation-latest",
         input: [
@@ -179,6 +181,15 @@ ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
       });
 
       const moderationResult = moderation.results[0];
+      
+      // Always log moderation check (for debugging)
+      console.log('✅ Moderation check completed:', {
+        flagged: moderationResult.flagged,
+        categories: Object.keys(moderationResult.categories).filter(
+          key => moderationResult.categories[key]
+        ),
+        timestamp: new Date().toISOString()
+      });
 
       if (moderationResult.flagged) {
         // Get flagged categories
@@ -266,6 +277,33 @@ ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
 // Simple endpoint to test if server is running - GET /health
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// === MODERATION TEST ENDPOINT ===
+app.post('/test-moderation', async (req, res) => {
+  try {
+    const testMessage = req.body.message || "This is a test message";
+    
+    console.log('🧪 Testing moderation with:', testMessage);
+    
+    const moderation = await openai.moderations.create({
+      model: "omni-moderation-latest",
+      input: [
+        { type: "text", text: testMessage }
+      ],
+    });
+
+    const result = moderation.results[0];
+    
+    res.json({
+      message: testMessage,
+      flagged: result.flagged,
+      categories: Object.keys(result.categories).filter(key => result.categories[key]),
+      scores: result.category_scores
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Moderation test failed', details: error.message });
+  }
 });
 
 // === START THE SERVER ===
