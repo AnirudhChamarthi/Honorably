@@ -9,11 +9,16 @@ require('dotenv').config({ path: 'project.env' }); // Load environment variables
 const app = express();                   // Create Express app
 const PORT = process.env.PORT || 3000;   // Set port from environment or default to 3000
 
+// === PRODUCTION ENVIRONMENT DETECTION ===
+const isProduction = process.env.NODE_ENV === 'production';
+
 // === MIDDLEWARE SETUP ===
 // These run before every request
 app.use(express.json({ limit: '1mb' })); // Parse JSON request bodies with size limit
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3001', // Restrict CORS to your frontend
+  origin: isProduction 
+    ? [process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://honorably.vercel.app'] 
+    : 'http://localhost:3001', // Restrict CORS to your frontend
   credentials: true
 }));
 

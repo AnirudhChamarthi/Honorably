@@ -41,7 +41,10 @@ function App() {
 
     try {
       // === STEP 2: CALL YOUR BACKEND API ===
-      const response = await axios.post('http://localhost:3000/api/gpt', {  // HTTP POST request
+      const backendUrl = process.env.NODE_ENV === 'production' 
+        ? '' // In production, use same domain (Vercel handles routing)
+        : 'http://localhost:3000'; // In development, use localhost
+      const response = await axios.post(`${backendUrl}/api/gpt`, {  // HTTP POST request
         message: userMessage,                            // Send the user's message
         maxTokens: 300,                                  // Limit response length
         temperature: 0.7                                 // Control AI creativity (0-1)
