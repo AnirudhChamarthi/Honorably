@@ -30,7 +30,7 @@ function App() {
   const [messages, setMessages] = useState([               // Array of all chat messages
     {
       role: 'assistant',                                   // Who sent it: 'user' or 'assistant'
-      content: 'Hello! I\'m your educational AI assistant. My name is Honorably.'  // The actual message text
+      content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material. I believe in you!'  // The actual message text
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');    // What user is currently typing
