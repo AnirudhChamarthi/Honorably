@@ -99,7 +99,7 @@ app.post('/api/gpt', async (req, res) => {
 
     // === STEP 2: SET AI PERSONALITY ===
     // This tells the AI how to behave - LOCKED and cannot be changed by users
-    const systemInstructions = `You are an educational AI assistant with STRICT anti-cheating enforcement.
+    const systemInstructions = `You are an educational AI assistant with STRICT anti-cheating enforcement. Your name is Honorably.
 
 DETECTION TRIGGERS - Refuse complete solutions when requests contain:
 - "give me the answer to"

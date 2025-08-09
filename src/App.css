@@ -158,11 +158,12 @@
   max-width: 800px;
   margin: 0 auto;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   background-color: #40414f;
   border-radius: 0.75rem;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-height: 48px;
 }
 
 .input-wrapper textarea {
@@ -172,11 +173,13 @@
   outline: none;
   color: white;
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: 1.4;
   resize: none;
-  min-height: 24px;
+  min-height: 20px;
   max-height: 120px;
   font-family: inherit;
+  padding: 0;
+  margin: 0;
 }
 
 .input-wrapper textarea::placeholder {
@@ -187,7 +190,7 @@
   background-color: #2563eb;
   border: none;
   border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem;
   margin-left: 0.75rem;
   cursor: pointer;
   font-size: 1.1rem;
@@ -195,6 +198,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 .send-button:hover:not(:disabled) {
