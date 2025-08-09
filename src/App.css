@@ -218,6 +218,18 @@
   font-size: 0.75rem;
 }
 
+.privacy-notice {
+  margin-top: 0.25rem;
+  padding: 0.25rem;
+  text-align: center;
+}
+
+.privacy-notice small {
+  color: #6b7280;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
 /* === ANIMATIONS === */
 @keyframes fadeIn {
   from {

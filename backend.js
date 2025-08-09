@@ -3,6 +3,8 @@ const express = require('express');      // Web server framework
 const OpenAI = require('openai');        // OpenAI API client library
 const cors = require('cors');            // Cross-origin resource sharing
 const rateLimit = require('express-rate-limit'); // Rate limiting middleware
+const session = require('express-session'); // Session management for privacy-friendly rate limiting
+const crypto = require('crypto');        // For hashing (privacy protection)
 require('dotenv').config({ path: 'project.env' }); // Load environment variables from project.env file
 
 // === SERVER INITIALIZATION ===
@@ -15,23 +17,54 @@ const isProduction = process.env.NODE_ENV === 'production';
 // === MIDDLEWARE SETUP ===
 // These run before every request
 app.use(express.json({ limit: '1mb' })); // Parse JSON request bodies with size limit
+
+// === PRIVACY-FIRST SESSION MANAGEMENT ===
+app.use(session({
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'), // Random secret for sessions
+  resave: false,                         // Don't save session if unmodified
+  saveUninitialized: false,              // Don't create session until something stored
+  cookie: { 
+    secure: isProduction,                // HTTPS only in production
+    httpOnly: true,                      // Prevent XSS attacks
+    maxAge: 24 * 60 * 60 * 1000         // 24 hours
+  },
+  name: 'sessionId'                      // Don't use default session name
+}));
+
 app.use(cors({
   origin: isProduction 
     ? [process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://honorably.vercel.app'] 
     : 'http://localhost:3001', // Restrict CORS to your frontend
-  credentials: true
+  credentials: true                      // Required for sessions to work
 }));
 
-// === RATE LIMITING ===
+// === PRIVACY-FIRST RATE LIMITING ===
+// Uses session ID instead of IP address for privacy
 const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 50, // Limit each IP to 50 requests per windowMs
-  message: {
-    error: 'Too many requests from this IP, please try again later.',
-    retryAfter: '1 minute'
+  windowMs: 15 * 60 * 1000,              // 15 minutes
+  max: 50,                               // 50 requests per session per window
+  keyGenerator: (req) => {
+    // Use session ID instead of IP for privacy
+    if (req.sessionID) {
+      return req.sessionID;
+    }
+    // Fallback: hash IP with daily salt (no permanent tracking)
+    const date = new Date().toDateString();
+    const salt = process.env.RATE_LIMIT_SALT || 'default-salt';
+    return crypto.createHash('sha256')
+                 .update(req.ip + date + salt)
+                 .digest('hex');
   },
-  standardHeaders: true,
+  message: {
+    error: 'Too many requests from this session, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: false,                // Don't expose rate limit headers (privacy)
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/health';
+  }
 });
 app.use('/api/', limiter); // Apply rate limiting to all API routes
 

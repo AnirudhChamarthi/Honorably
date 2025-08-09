@@ -159,6 +159,9 @@ function App() {
         {/* === HELP TEXT === */}
         <div className="input-footer">                   {/* Small instruction text */}
           <small>Press Enter to send • Shift+Enter for new line</small>  {/* User instructions */}
+          <div className="privacy-notice">
+            <small>🔒 Privacy-first: We use temporary sessions for rate limiting only. No personal data is stored or shared.</small>
+          </div>
         </div>
       </div>
       {/* Close main app container */}
