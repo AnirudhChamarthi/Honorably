@@ -3,6 +3,27 @@ import React, { useState, useRef, useEffect } from 'react';  // React hooks for 
 import axios from 'axios';                                   // HTTP client for API calls
 import './App.css';                                          // Styling for this component
 
+// === SAFE TEXT FORMATTER COMPONENT ===
+const FormattedText = ({ text }) => {
+  // Split text by ** patterns and create elements
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        // Check if this part is wrapped in **
+        if (part.startsWith('**') && part.endsWith('**')) {
+          // Remove the ** and make it bold
+          const boldText = part.slice(2, -2);
+          return <strong key={index}>{boldText}</strong>;
+        }
+        // Regular text
+        return part;
+      })}
+    </>
+  );
+};
+
 // === MAIN CHAT APPLICATION COMPONENT ===
 function App() {
   // === STATE MANAGEMENT (React Hooks) ===
@@ -101,13 +122,13 @@ function App() {
               
               {/* === MESSAGE AVATAR === */}
               <div className="message-avatar">           {/* Profile picture area */}
-                {message.role === 'user' ? ':)' : '🤖'}  {/* Conditional emoji: user gets smiley, AI gets robot */}
+                {message.role === 'user' ? '🙋' : '🤖'}  {/* Conditional emoji: user gets friendly hand-raise, AI gets robot */}
               </div>
               
               {/* === MESSAGE CONTENT === */}
               <div className="message-content">          {/* Container for the actual message */}
                 <div className="message-text">           {/* The speech bubble */}
-                  {message.content}                      {/* The actual text of the message */}
+                  <FormattedText text={message.content} /> {/* Safe formatting component */}
                 </div>
               </div>
             </div>

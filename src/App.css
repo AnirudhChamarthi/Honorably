@@ -61,15 +61,17 @@
 }
 
 .message-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin: 0 0.75rem;
   flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.25rem;
 }
 
 .message.user .message-avatar {
@@ -83,7 +85,8 @@
 
 .message-content {
   max-width: 70%;
-  min-width: 100px;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .message.user .message-content {
@@ -92,11 +95,21 @@
 
 .message-text {
   background-color: #444654;
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
-  line-height: 1.5;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.75rem;
+  line-height: 1.3;
   word-wrap: break-word;
-  white-space: pre-wrap;
+  white-space: pre-line;
+  min-height: auto;
+  display: table;
+  min-width: 0;
+  text-indent: 0;
+  margin: 0;
+}
+
+.message-text strong {
+  font-weight: 600;
+  color: inherit;
 }
 
 .message.user .message-text {
@@ -113,9 +126,9 @@
 .typing-indicator {
   display: flex;
   align-items: center;
-  padding: 1rem 1.25rem;
+  padding: 0.4rem 0.6rem;
   background-color: #444654;
-  border-radius: 1rem;
+  border-radius: 0.75rem;
 }
 
 .typing-indicator span {
@@ -158,12 +171,12 @@
   max-width: 800px;
   margin: 0 auto;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   background-color: #40414f;
   border-radius: 0.75rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  min-height: 48px;
+  min-height: 60px;
 }
 
 .input-wrapper textarea {
@@ -173,17 +186,38 @@
   outline: none;
   color: white;
   font-size: 1rem;
-  line-height: 1.4;
+  line-height: 1.5;
   resize: none;
-  min-height: 20px;
-  max-height: 120px;
+  min-height: 42px;
+  max-height: 200px;
   font-family: inherit;
-  padding: 0;
+  padding: 0.5rem 0;
   margin: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #565869 transparent;
 }
 
 .input-wrapper textarea::placeholder {
   color: #8e8ea0;
+}
+
+/* Custom scrollbar for webkit browsers (Chrome, Safari, Edge) */
+.input-wrapper textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.input-wrapper textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.input-wrapper textarea::-webkit-scrollbar-thumb {
+  background: #565869;
+  border-radius: 3px;
+}
+
+.input-wrapper textarea::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 
 .send-button {
@@ -198,9 +232,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
+  min-width: 40px;
+  height: 40px;
   flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 0.25rem;
 }
 
 .send-button:hover:not(:disabled) {
