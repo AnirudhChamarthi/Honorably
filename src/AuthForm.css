@@ -94,6 +94,16 @@
   border-left: 4px solid #c53030;
 }
 
+.success-message {
+  background: #f0fff4;
+  color: #2f855a;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-left: 4px solid #2f855a;
+}
+
 .auth-button {
   width: 100%;
   background-color: #2563eb;
@@ -144,6 +154,16 @@
 
 .toggle-auth:hover {
   color: #1d4ed8;
+}
+
+.forgot-password-link {
+  font-size: 12px;
+  margin-top: 8px;
+  color: #6b7280;
+}
+
+.forgot-password-link:hover {
+  color: #2563eb;
 }
 
 /* === RESPONSIVE DESIGN === */

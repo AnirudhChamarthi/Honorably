@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';  // React hooks for 
 import axios from 'axios';                                   // HTTP client for API calls
 import { supabase } from './supabaseClient';                 // Supabase client for authentication
 import AuthForm from './AuthForm';                           // Authentication form component
+import PasswordReset from './PasswordReset';                 // Password reset component
 import './App.css';                                          // Styling for this component
 
 // === SAFE TEXT FORMATTER COMPONENT ===
@@ -31,6 +32,7 @@ function App() {
   // === STATE MANAGEMENT (React Hooks) ===
   const [user, setUser] = useState(null);                  // Current authenticated user
   const [loading, setLoading] = useState(true);            // Loading state for auth check
+  const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form
   const [messages, setMessages] = useState([               // Array of all chat messages
     {
       role: 'assistant',                                   // Who sent it: 'user' or 'assistant'
@@ -61,8 +63,25 @@ function App() {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null)
-        setLoading(false)
+        console.log('Auth event:', event, session)
+        
+        if (event === 'PASSWORD_RECOVERY') {
+          // User clicked password reset link - show password reset form
+          setUser(session?.user ?? null)
+          setShowPasswordReset(true)
+          setLoading(false)
+        } else if (event === 'SIGNED_IN') {
+          setUser(session?.user ?? null)
+          setShowPasswordReset(false)
+          setLoading(false)
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setShowPasswordReset(false)
+          setLoading(false)
+        } else {
+          setUser(session?.user ?? null)
+          setLoading(false)
+        }
       }
     )
 
@@ -171,6 +190,11 @@ function App() {
         <p>Loading...</p>
       </div>
     );
+  }
+
+  // Show password reset form if user is in password recovery mode
+  if (showPasswordReset) {
+    return <PasswordReset onComplete={() => setShowPasswordReset(false)} />;
   }
 
   // Show authentication form if user is not logged in
