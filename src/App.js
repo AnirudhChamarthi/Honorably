@@ -4,6 +4,7 @@ import axios from 'axios';                                   // HTTP client for 
 import { supabase } from './supabaseClient';                 // Supabase client for authentication
 import AuthForm from './AuthForm';                           // Authentication form component
 import PasswordReset from './PasswordReset';                 // Password reset component
+import ConversationSidebar from './ConversationSidebar';     // Conversation sidebar component
 import './App.css';                                          // Styling for this component
 
 // === SAFE TEXT FORMATTER COMPONENT ===
@@ -33,12 +34,8 @@ function App() {
   const [user, setUser] = useState(null);                  // Current authenticated user
   const [loading, setLoading] = useState(true);            // Loading state for auth check
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form
-  const [messages, setMessages] = useState([               // Array of all chat messages
-    {
-      role: 'assistant',                                   // Who sent it: 'user' or 'assistant'
-      content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material. I believe in you!'  // The actual message text
-    }
-  ]);
+  const [currentConversation, setCurrentConversation] = useState(null); // Current selected conversation
+  const [messages, setMessages] = useState([]);            // Array of all chat messages
   const [inputMessage, setInputMessage] = useState('');    // What user is currently typing
   const [isLoading, setIsLoading] = useState(false);      // True when waiting for AI response
   const messagesEndRef = useRef(null);                    // Reference to scroll to bottom
@@ -96,10 +93,8 @@ function App() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
-    setMessages([{
-      role: 'assistant',
-      content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material. I believe in you!'
-    }])
+    setCurrentConversation(null)
+    setMessages([])
   }
 
   // === SIDE EFFECT: SCROLL WHEN MESSAGES CHANGE ===
@@ -107,26 +102,79 @@ function App() {
     scrollToBottom();                                      // Run scrollToBottom every time messages array changes
   }, [messages]);                                          // Dependency array: only run when 'messages' changes
 
+  // === CONVERSATION MANAGEMENT FUNCTIONS ===
+  const handleConversationSelect = async (conversation) => {
+    setCurrentConversation(conversation)
+    setMessages([]) // Clear current messages
+    
+    if (conversation) {
+      await loadConversationMessages(conversation.id)
+    }
+  }
+
+  const handleNewConversation = (conversation) => {
+    setCurrentConversation(conversation)
+    setMessages([{
+      role: 'assistant',
+      content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material. I believe in you!'
+    }])
+  }
+
+  // === LOAD MESSAGES FOR SELECTED CONVERSATION ===
+  const loadConversationMessages = async (conversationId) => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        throw error
+      }
+
+      if (data && data.length > 0) {
+        setMessages(data)
+      } else {
+        // Show welcome message for empty conversation
+        setMessages([{
+          role: 'assistant',
+          content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material. I believe in you!'
+        }])
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+      setMessages([{
+        role: 'assistant',
+        content: 'Sorry, I encountered an error loading the conversation. Please try again.'
+      }])
+    }
+  }
+
   // === MAIN FUNCTION: SEND MESSAGE TO BACKEND ===
   const sendMessage = async () => {
-    // Guard clause: Don't send if input is empty or already loading
-    if (!inputMessage.trim() || isLoading) return;
+    // Guard clause: Don't send if input is empty, already loading, or no conversation selected
+    if (!inputMessage.trim() || isLoading || !currentConversation) return;
 
     const userMessage = inputMessage.trim();             // Clean up the message
     setInputMessage('');                                 // Clear the input field immediately
     
     // === STEP 1: ADD USER MESSAGE TO CHAT ===
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);  // Spread operator adds new message to array
+    const userMessageObj = { role: 'user', content: userMessage }
+    setMessages(prev => [...prev, userMessageObj]);     // Spread operator adds new message to array
     setIsLoading(true);                                  // Show typing indicator
 
     try {
-      // === STEP 2: GET AUTHENTICATION TOKEN ===
+      // === STEP 2: SAVE USER MESSAGE TO DATABASE ===
+      await saveMessageToDatabase(userMessageObj)
+
+      // === STEP 3: GET AUTHENTICATION TOKEN ===
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         throw new Error('No active session')
       }
 
-      // === STEP 3: CALL YOUR BACKEND API ===
+      // === STEP 4: CALL YOUR BACKEND API ===
       const backendUrl = process.env.NODE_ENV === 'production' 
         ? '' // In production, use same domain (Vercel handles routing)
         : 'http://localhost:3000'; // In development, use localhost
@@ -140,14 +188,15 @@ function App() {
         }
       });
 
-      // === STEP 3: ADD AI RESPONSE TO CHAT ===
-      setMessages(prev => [...prev, {                   // Add AI response to messages array
-        role: 'assistant', 
-        content: response.data.response                  // Extract response text from API result
-      }]);
+      // === STEP 5: ADD AI RESPONSE TO CHAT ===
+      const aiMessageObj = { role: 'assistant', content: response.data.response }
+      setMessages(prev => [...prev, aiMessageObj]);     // Add AI response to messages array
+
+      // === STEP 6: SAVE AI MESSAGE TO DATABASE ===
+      await saveMessageToDatabase(aiMessageObj)
 
     } catch (error) {
-      // === STEP 4: HANDLE ERRORS GRACEFULLY ===
+      // === STEP 7: HANDLE ERRORS GRACEFULLY ===
       console.error('Error calling backend:', error);   // Log error for debugging
       
       let errorMessage = 'Sorry, I encountered an error. Please make sure the backend server is running on port 3000.';
@@ -162,14 +211,63 @@ function App() {
       }
       
       // Show appropriate error message in chat
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: errorMessage
-      }]);
+      const errorMessageObj = { role: 'assistant', content: errorMessage }
+      setMessages(prev => [...prev, errorMessageObj]);
+      
+      // Save error message to database
+      await saveMessageToDatabase(errorMessageObj)
     } finally {
       setIsLoading(false);                               // Always hide typing indicator when done
     }
   };
+
+  // === SAVE MESSAGE TO DATABASE ===
+  const saveMessageToDatabase = async (messageObj) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert([{
+          conversation_id: currentConversation.id,
+          role: messageObj.role,
+          content: messageObj.content
+        }])
+
+      if (error) {
+        console.error('Error saving message to database:', error)
+      } else {
+        // Update conversation title if it's still "New Conversation" and this is the first user message
+        if (currentConversation.title === 'New Conversation' && messageObj.role === 'user') {
+          await updateConversationTitle(currentConversation.id, messageObj.content)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving message to database:', error)
+    }
+  }
+
+  // === UPDATE CONVERSATION TITLE ===
+  const updateConversationTitle = async (conversationId, userMessage) => {
+    try {
+      // Create a title from the first user message (truncate if too long)
+      const title = userMessage.length > 50 
+        ? userMessage.substring(0, 50) + '...' 
+        : userMessage
+
+      const { error } = await supabase
+        .from('conversations')
+        .update({ title: title })
+        .eq('id', conversationId)
+
+      if (error) {
+        console.error('Error updating conversation title:', error)
+      } else {
+        // Update local state
+        setCurrentConversation(prev => prev ? { ...prev, title: title } : null)
+      }
+    } catch (error) {
+      console.error('Error updating conversation title:', error)
+    }
+  }
 
   // === KEYBOARD SHORTCUT HANDLER ===
   const handleKeyPress = (e) => {
@@ -206,91 +304,112 @@ function App() {
   return (
     <div className="app">                                {/* Main container for entire app */}
       
-      {/* === HEADER SECTION === */}
-      <header className="header">                        {/* Top navigation bar */}
-        <div className="logo">                           {/* Logo container */}
-          <span className="logo-icon">🎓</span>          {/* Emoji icon */}
-          <span className="logo-text">Honorably</span>   {/* App name */}
-        </div>
-        
-        {/* === USER MENU === */}
-        <div className="user-menu">
-          <button onClick={handleSignOut} className="sign-out-button">
-            Sign Out
-          </button>
-        </div>
-      </header>
+       {/* === SIDEBAR SECTION === */}
+       <ConversationSidebar
+         currentConversationId={currentConversation?.id}
+         onConversationSelect={handleConversationSelect}
+         onNewConversation={handleNewConversation}
+         key={currentConversation?.id} // Force re-render when conversation changes
+       />
 
-      {/* === CHAT MESSAGES SECTION === */}
-      <div className="chat-container">                   {/* Scrollable container for all messages */}
-        <div className="messages">                       {/* Inner wrapper for message list */}
+      {/* === MAIN CHAT AREA === */}
+      <div className="main-chat-area">
+        {/* === HEADER SECTION === */}
+        <header className="header">                        {/* Top navigation bar */}
+          <div className="logo">                           {/* Logo container */}
+            <span className="logo-icon">🎓</span>          {/* Emoji icon */}
+            <span className="logo-text">Honorably</span>   {/* App name */}
+          </div>
           
-          {/* === LOOP THROUGH ALL MESSAGES === */}
-          {messages.map((message, index) => (            /* .map() creates one div per message */
-            <div key={index} className={`message ${message.role}`}>  {/* Dynamic CSS class: "message user" or "message assistant" */}
-              
-              {/* === MESSAGE AVATAR === */}
-              <div className="message-avatar">           {/* Profile picture area */}
-                {message.role === 'user' ? '🙋' : '🤖'}  {/* Conditional emoji: user gets friendly hand-raise, AI gets robot */}
-              </div>
-              
-              {/* === MESSAGE CONTENT === */}
-              <div className="message-content">          {/* Container for the actual message */}
-                <div className="message-text">           {/* The speech bubble */}
-                  <FormattedText text={message.content} /> {/* Safe formatting component */}
+          {/* === USER MENU === */}
+          <div className="user-menu">
+            <button onClick={handleSignOut} className="sign-out-button">
+              Sign Out
+            </button>
+          </div>
+        </header>
+
+        {/* === CHAT MESSAGES SECTION === */}
+        <div className="chat-container">                   {/* Scrollable container for all messages */}
+          <div className="messages">                       {/* Inner wrapper for message list */}
+            
+            {/* === NO CONVERSATION SELECTED === */}
+            {!currentConversation && (
+              <div className="no-conversation-message">
+                <div className="no-conversation-content">
+                  <h2>Welcome to Honorably!</h2>
+                  <p>Select a conversation from the sidebar or create a new one to get started.</p>
                 </div>
               </div>
-            </div>
-          ))}
-          
-          {/* === TYPING INDICATOR (CONDITIONAL) === */}
-          {isLoading && (                                /* Only show when AI is "thinking" */
-            <div className="message assistant">         {/* Styled like an AI message */}
-              <div className="message-avatar">🤖</div>   {/* Robot avatar */}
-              <div className="message-content">
-                <div className="typing-indicator">       {/* The animated "..." dots */}
-                  <span></span>                          {/* Dot 1 */}
-                  <span></span>                          {/* Dot 2 */}
-                  <span></span>                          {/* Dot 3 - each animates with delay */}
+            )}
+
+            {/* === LOOP THROUGH ALL MESSAGES === */}
+            {currentConversation && messages.map((message, index) => (            /* .map() creates one div per message */
+              <div key={index} className={`message ${message.role}`}>  {/* Dynamic CSS class: "message user" or "message assistant" */}
+                
+                {/* === MESSAGE AVATAR === */}
+                <div className="message-avatar">           {/* Profile picture area */}
+                  {message.role === 'user' ? '🙋' : '🤖'}  {/* Conditional emoji: user gets friendly hand-raise, AI gets robot */}
+                </div>
+                
+                {/* === MESSAGE CONTENT === */}
+                <div className="message-content">          {/* Container for the actual message */}
+                  <div className="message-text">           {/* The speech bubble */}
+                    <FormattedText text={message.content} /> {/* Safe formatting component */}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          
-          {/* === INVISIBLE SCROLL TARGET === */}
-          <div ref={messagesEndRef} />                   {/* This div is used by scrollToBottom() function */}
+            ))}
+            
+            {/* === TYPING INDICATOR (CONDITIONAL) === */}
+            {isLoading && (                                /* Only show when AI is "thinking" */
+              <div className="message assistant">         {/* Styled like an AI message */}
+                <div className="message-avatar">🤖</div>   {/* Robot avatar */}
+                <div className="message-content">
+                  <div className="typing-indicator">       {/* The animated "..." dots */}
+                    <span></span>                          {/* Dot 1 */}
+                    <span></span>                          {/* Dot 2 */}
+                    <span></span>                          {/* Dot 3 - each animates with delay */}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* === INVISIBLE SCROLL TARGET === */}
+            <div ref={messagesEndRef} />                   {/* This div is used by scrollToBottom() function */}
+          </div>
         </div>
-      </div>
 
-      {/* === INPUT AREA SECTION === */}
-      <div className="input-container">                  {/* Bottom section for user input */}
-        <div className="input-wrapper">                  {/* Container for textarea + send button */}
+        {/* === INPUT AREA SECTION === */}
+        <div className="input-container">                  {/* Bottom section for user input */}
+          <div className="input-wrapper">                  {/* Container for textarea + send button */}
+            
+            {/* === TEXT INPUT FIELD === */}
+            <textarea                                      /* Multi-line text input */
+              value={inputMessage}                         /* Controlled component: React manages the value */
+              onChange={(e) => setInputMessage(e.target.value)}  /* Update state when user types */
+              onKeyPress={handleKeyPress}                  /* Listen for Enter key presses */
+              placeholder={currentConversation ? "Ask me anything! I'll help you learn..." : "Select a conversation to start chatting..."}  /* Hint text when empty */
+              disabled={isLoading || !currentConversation}  /* Disable input while AI is responding or no conversation selected */
+              rows="1"                                     /* Start with single line (auto-expands) */
+            />
+            
+            {/* === SEND BUTTON === */}
+            <button                                        /* Submit button */
+              onClick={sendMessage}                        /* Call sendMessage function when clicked */
+              disabled={!inputMessage.trim() || isLoading || !currentConversation}  /* Disable if empty message, loading, or no conversation */
+              className="send-button"                      /* CSS class for styling */
+            >
+              📤                                           {/* Send icon emoji */}
+            </button>
+          </div>
           
-          {/* === TEXT INPUT FIELD === */}
-          <textarea                                      /* Multi-line text input */
-            value={inputMessage}                         /* Controlled component: React manages the value */
-            onChange={(e) => setInputMessage(e.target.value)}  /* Update state when user types */
-            onKeyPress={handleKeyPress}                  /* Listen for Enter key presses */
-            placeholder="Ask me anything! I'll help you learn..."  /* Hint text when empty */
-            disabled={isLoading}                         /* Disable input while AI is responding */
-            rows="1"                                     /* Start with single line (auto-expands) */
-          />
-          
-          {/* === SEND BUTTON === */}
-          <button                                        /* Submit button */
-            onClick={sendMessage}                        /* Call sendMessage function when clicked */
-            disabled={!inputMessage.trim() || isLoading}  /* Disable if empty message or loading */
-            className="send-button"                      /* CSS class for styling */
-          >
-            📤                                           {/* Send icon emoji */}
-          </button>
-        </div>
-        
-        {/* === HELP TEXT === */}
-        <div className="input-footer">                   {/* Small instruction text */}
-          <small>Press Enter to send • Shift+Enter for new line</small>  {/* User instructions */}
-          <div className="privacy-notice">
-            <small>🔒 Privacy-first: We use temporary sessions for rate limiting only. No personal data is stored or shared.</small>
+          {/* === HELP TEXT === */}
+          <div className="input-footer">                   {/* Small instruction text */}
+            <small>Press Enter to send • Shift+Enter for new line</small>  {/* User instructions */}
+            <div className="privacy-notice">
+              <small>🔒 Privacy-first: We use temporary sessions for rate limiting only. No personal data is stored or shared.</small>
+            </div>
           </div>
         </div>
       </div>

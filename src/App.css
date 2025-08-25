@@ -2,8 +2,15 @@
 .app {
   height: 100vh;
   display: flex;
-  flex-direction: column;
   background-color: #343541;
+}
+
+/* === MAIN CHAT AREA === */
+.main-chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* === HEADER STYLES === */
@@ -286,6 +293,14 @@
 
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+  
+  .main-chat-area {
+    flex: 1;
+  }
+  
   .header {
     padding: 0.75rem 1rem;
   }
@@ -384,4 +399,31 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* === NO CONVERSATION MESSAGE === */
+.no-conversation-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.no-conversation-content {
+  max-width: 400px;
+  padding: 2rem;
+}
+
+.no-conversation-content h2 {
+  color: #d1d5db;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.no-conversation-content p {
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1.5;
 }

@@ -25,3 +25,9 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Database schema (contains sensitive structure info)
+database_schema.sql
+
+# SQL files
+*.sql
