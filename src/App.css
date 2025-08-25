@@ -328,3 +328,60 @@
 .chat-container::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+
+/* === USER MENU STYLES === */
+.user-menu {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.user-email {
+  color: #d1d5db;
+  font-size: 0.9rem;
+}
+
+.sign-out-button {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #444654;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  font-weight: 400;
+}
+
+.sign-out-button:hover {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+  transform: translateY(-1px);
+}
+
+/* === LOADING STYLES === */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #343541;
+  color: white;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #444654;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

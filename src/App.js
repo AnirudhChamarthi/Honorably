@@ -1,6 +1,8 @@
 // === IMPORTS ===
 import React, { useState, useRef, useEffect } from 'react';  // React hooks for state and lifecycle
 import axios from 'axios';                                   // HTTP client for API calls
+import { supabase } from './supabaseClient';                 // Supabase client for authentication
+import AuthForm from './AuthForm';                           // Authentication form component
 import './App.css';                                          // Styling for this component
 
 // === SAFE TEXT FORMATTER COMPONENT ===
@@ -27,6 +29,8 @@ const FormattedText = ({ text }) => {
 // === MAIN CHAT APPLICATION COMPONENT ===
 function App() {
   // === STATE MANAGEMENT (React Hooks) ===
+  const [user, setUser] = useState(null);                  // Current authenticated user
+  const [loading, setLoading] = useState(true);            // Loading state for auth check
   const [messages, setMessages] = useState([               // Array of all chat messages
     {
       role: 'assistant',                                   // Who sent it: 'user' or 'assistant'
@@ -42,6 +46,42 @@ function App() {
     // Smoothly scroll the chat to the bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // === AUTHENTICATION EFFECTS ===
+  useEffect(() => {
+    // Check for existing session on app load
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+      setLoading(false)
+    }
+    
+    checkUser()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // === AUTHENTICATION HANDLERS ===
+  const handleAuthSuccess = (user) => {
+    setUser(user)
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setMessages([{
+      role: 'assistant',
+      content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material. I believe in you!'
+    }])
+  }
 
   // === SIDE EFFECT: SCROLL WHEN MESSAGES CHANGE ===
   useEffect(() => {
@@ -61,7 +101,13 @@ function App() {
     setIsLoading(true);                                  // Show typing indicator
 
     try {
-      // === STEP 2: CALL YOUR BACKEND API ===
+      // === STEP 2: GET AUTHENTICATION TOKEN ===
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session')
+      }
+
+      // === STEP 3: CALL YOUR BACKEND API ===
       const backendUrl = process.env.NODE_ENV === 'production' 
         ? '' // In production, use same domain (Vercel handles routing)
         : 'http://localhost:3000'; // In development, use localhost
@@ -69,6 +115,10 @@ function App() {
         message: userMessage,                            // Send the user's message
         maxTokens: 300,                                  // Limit response length
         temperature: 0.7                                 // Control AI creativity (0-1)
+      }, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}` // Include auth token
+        }
       });
 
       // === STEP 3: ADD AI RESPONSE TO CHAT ===
@@ -112,6 +162,23 @@ function App() {
   };
 
   // === JSX RETURN: THE ACTUAL HTML STRUCTURE ===
+  
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Show authentication form if user is not logged in
+  if (!user) {
+    return <AuthForm onAuthSuccess={handleAuthSuccess} />;
+  }
+
+  // Show main chat interface if user is authenticated
   return (
     <div className="app">                                {/* Main container for entire app */}
       
@@ -120,6 +187,13 @@ function App() {
         <div className="logo">                           {/* Logo container */}
           <span className="logo-icon">🎓</span>          {/* Emoji icon */}
           <span className="logo-text">Honorably</span>   {/* App name */}
+        </div>
+        
+        {/* === USER MENU === */}
+        <div className="user-menu">
+          <button onClick={handleSignOut} className="sign-out-button">
+            Sign Out
+          </button>
         </div>
       </header>
 

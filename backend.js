@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit'); // Rate limiting middleware
 const session = require('express-session'); // Session management for privacy-friendly rate limiting
 const crypto = require('crypto');        // For hashing (privacy protection)
 const path = require('path');            // For file path operations
+const { createClient } = require('@supabase/supabase-js'); // Supabase client for authentication
 require('dotenv').config({ path: 'project.env' }); // Load environment variables from project.env file
 
 // === SERVER INITIALIZATION ===
@@ -14,6 +15,18 @@ const PORT = process.env.PORT || 3000;   // Set port from environment or default
 
 // === PRODUCTION ENVIRONMENT DETECTION ===
 const isProduction = process.env.NODE_ENV === 'production';
+
+// === SUPABASE CLIENT SETUP ===
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
+
+// Validate Supabase environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ SUPABASE_URL and SUPABASE_ANON_KEY are required in environment variables');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // === MIDDLEWARE SETUP ===
 // These run before every request
@@ -73,6 +86,30 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter); // Apply rate limiting to all API routes
 
+// === AUTHENTICATION MIDDLEWARE ===
+const authenticateUser = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No valid authorization token provided' })
+    }
+
+    const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+    
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' })
+    }
+
+    req.user = user
+    next()
+  } catch (error) {
+    console.error('Authentication error:', error)
+    return res.status(401).json({ error: 'Authentication failed' })
+  }
+}
+
 // === OPENAI CLIENT SETUP ===
 // Validate API key exists and has correct format
 if (!process.env.OPENAI_API_KEY) {
@@ -92,7 +129,7 @@ const openai = new OpenAI({
 
 // === MAIN AI ENDPOINT ===
 // This is where the magic happens - handles POST requests to /api/gpt
-app.post('/api/gpt', async (req, res) => {
+app.post('/api/gpt', authenticateUser, async (req, res) => {
   try {
     // === STEP 1: EXTRACT USER INPUT ===
     // Get data from the request body (what the user sent)
