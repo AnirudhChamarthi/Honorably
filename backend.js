@@ -351,7 +351,7 @@ app.post('/test-moderation', async (req, res) => {
 // === CATCH-ALL ROUTE FOR REACT APP ===
 // Serve React app for any non-API routes (SPA routing)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  res.sendFile(path.join(process.cwd(), 'build', 'index.html'));
 });
 
 // === START THE SERVER ===
