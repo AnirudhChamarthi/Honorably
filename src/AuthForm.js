@@ -82,7 +82,17 @@ const AuthForm = ({ onAuthSuccess }) => {
         {/* === HEADER === */}
         <div className="auth-header">
           <h2>
-            {showForgotPassword ? 'Reset Password' : (isSignUp ? 'Create Account' : 'Honorably')}
+np            {showForgotPassword ? 'Reset Password' : (isSignUp ? 'Create Account' : (
+              <a 
+                href="https://anirudhchamarthi.substack.com/p/honorably?r=4l7fsq" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="logo-text"
+                title="Read more here!"
+              >
+                Honorably
+              </a>
+            ))}
           </h2>
           <p>
             {showForgotPassword 

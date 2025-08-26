@@ -409,8 +409,18 @@ function App() {
         <header className="header">                        {/* Top navigation bar */}
           <div className="logo">                           {/* Logo container */}
             <span className="logo-icon">🎓</span>          {/* Emoji icon */}
-            <span className="logo-text">Honorably</span>   {/* App name */}
+            <a 
+              href="https://anirudhchamarthi.substack.com/p/honorably?r=4l7fsq" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="logo-text"
+              title="Read more here!"
+            >
+              Honorably
+            </a>
           </div>
+          
+
           
           {/* === USER MENU === */}
           <div className="user-menu">
@@ -504,6 +514,8 @@ function App() {
           </div>
         </div>
       </div>
+
+
       {/* Close main app container */}
     </div>
   );

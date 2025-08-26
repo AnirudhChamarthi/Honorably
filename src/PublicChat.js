@@ -102,8 +102,18 @@ function PublicChat({ onSignUp }) {
         <header className="header">
           <div className="logo">
             <span className="logo-icon">🎓</span>
-            <span className="logo-text">Honorably</span>
+            <a 
+              href="https://anirudhchamarthi.substack.com/p/honorably?r=4l7fsq" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="logo-text"
+              title="Read more here!"
+            >
+              Honorably
+            </a>
           </div>
+          
+
           
           {/* === SIGN IN BUTTON === */}
           <div className="user-menu">
@@ -116,13 +126,13 @@ function PublicChat({ onSignUp }) {
         {/* === CHAT MESSAGES SECTION === */}
         <div className="chat-container">
           <div className="messages">
-            {/* === WELCOME MESSAGE === */}
-            <div className="welcome-message">
-              <div className="welcome-content">
-                <h2>Welcome to Honorably!</h2>
-                <p>Start chatting with our AI assistant. Sign up to save conversations and unlock more features.</p>
-              </div>
-            </div>
+                         {/* === WELCOME MESSAGE === */}
+             <div className="welcome-message">
+               <div className="welcome-content">
+                 <h2>Welcome to Honorably!</h2>
+                 <p>Sign up or sign in to save conversations!</p>
+               </div>
+             </div>
 
             {/* === LOOP THROUGH ALL MESSAGES === */}
             {messages.map((message, index) => (
@@ -192,6 +202,8 @@ function PublicChat({ onSignUp }) {
           </div>
         </div>
       </div>
+
+
     </div>
   );
 }
