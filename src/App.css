@@ -375,6 +375,54 @@
   transform: translateY(-1px);
 }
 
+/* === SIGN UP BUTTON STYLES === */
+.sign-up-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.sign-up-button:hover {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* === WELCOME MESSAGE STYLES === */
+.welcome-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  padding: 20px;
+}
+
+.welcome-content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.welcome-content h2 {
+  color: #d1d5db;
+  margin-bottom: 10px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.welcome-content p {
+  color: #9ca3af;
+  line-height: 1.6;
+  margin: 0;
+  font-size: 16px;
+}
+
 /* === LOADING STYLES === */
 .loading-container {
   display: flex;

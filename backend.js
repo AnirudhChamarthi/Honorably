@@ -87,6 +87,19 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter); // Apply rate limiting to all API routes
 
+// === PUBLIC RATE LIMITING (More restrictive for unauthenticated users) ===
+const publicRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs (more restrictive)
+  message: { error: 'Too many requests from this IP. Please sign up for more access.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use IP address for public rate limiting
+    return req.ip || req.connection.remoteAddress
+  }
+})
+
 // === AUTHENTICATION MIDDLEWARE ===
 const authenticateUser = async (req, res, next) => {
   try {
@@ -127,6 +140,141 @@ if (!process.env.OPENAI_API_KEY.startsWith('sk-')) {
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,    // Your secret key from project.env file
 });
+
+// === PUBLIC AI ENDPOINT (No authentication required) ===
+// This allows unauthenticated users to try the service
+app.post('/api/public/gpt', publicRateLimit, async (req, res) => {
+  try {
+    // === STEP 1: EXTRACT USER INPUT ===
+    const { 
+      message,                           // The user's question/prompt
+      maxTokens = 150,                   // How long the AI response can be
+      temperature = 0.7                  // How creative the AI should be
+    } = req.body
+
+    // === STEP 2: VALIDATE INPUT ===
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'Message is required and must be a string' })
+    }
+
+    if (message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message cannot be empty' })
+    }
+
+    // Validate maxTokens parameter
+    if (maxTokens < 1 || maxTokens > 1000) {
+      return res.status(400).json({ 
+        error: 'maxTokens must be between 1 and 1000'
+      })
+    }
+
+    // === STEP 3: CONTENT MODERATION ===
+    // Check if the message violates our content policy
+    const moderationResult = await openai.moderations.create({
+      input: message,
+      model: 'text-moderation-latest'
+    })
+
+    // Check for flagged content (violent/criminal only)
+    const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(
+      key => moderationResult.results[0].categories[key]
+    )
+
+    if (flaggedCategories.length > 0) {
+      const categoryNames = Object.keys(moderationResult.results[0].categories).filter(
+        key => moderationResult.results[0].categories[key]
+      )
+      return res.status(400).json({ 
+        error: `Content violates our policy: ${categoryNames.join(', ')}`,
+        flagged: true
+      })
+    }
+
+    // === STEP 4: SET AI PERSONALITY (Same as authenticated version) ===
+    const systemInstructions = `You are an educational AI assistant with STRICT anti-cheating enforcement. Your name is Honorably.
+
+DETECTION TRIGGERS - Refuse complete solutions when requests contain:
+- "give me the answer to"
+- "solve this for me" 
+- "what is the solution"
+- "just tell me"
+- "the answer is"
+- "write a short answer"
+- "write a short response"
+- "write a short explanation"
+- "write a short summary"
+- "write a short report"
+- "write a short essay"
+- "write a short paper"
+- "write a short research paper"
+- Direct homework/test questions
+- Requests for complete code solutions
+- "do my homework"
+- Mathematical problems asking for final answers
+
+
+WHEN TRIGGERED: 
+1. DO NOT provide the complete solution
+2. Respond with EXACTLY: "Unfortunately, I can't provide the complete solution. However, I can help you learn this concept instead. Here are learning resources:"
+3. Provide maximum 6 brief items: sources, small examples, or outline steps
+4. Keep each item under 30 words - explain debugging steps for code completely
+5. If code, provide short code snippets or explain debug steps instead of full solutions.
+6. End with: "Try solving it yourself first, then ask specific questions about parts you're stuck on. You can do it!"
+
+
+NORMAL RESPONSES: For genuine learning questions, concept explanations, or clarifying questions, respond helpfully and completely.
+
+ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
+
+    // === STEP 5: CALL OPENAI API ===
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',              // Use GPT-4o-mini for cost efficiency
+      messages: [
+        {
+          role: 'system',
+          content: systemInstructions
+        },
+        {
+          role: 'user',
+          content: message
+        }
+      ],
+      max_tokens: maxTokens,             // Response length limit
+      temperature: temperature,           // Creativity level
+      stream: false                      // Get complete response at once
+    })
+
+    // === STEP 5: SEND RESPONSE ===
+    res.json({
+      response: completion.choices[0].message.content,
+      usage: completion.usage,           // How many tokens were used
+      model: completion.model
+    })
+
+  } catch (error) {
+    console.error('Public GPT endpoint error:', error)
+    
+    // Handle specific OpenAI errors
+    if (error.code === 'invalid_api_key') {
+      return res.status(500).json({ 
+        error: 'Invalid OpenAI API key'       // Bad API key
+      })
+    } else if (error.code === 'insufficient_quota') {
+      return res.status(500).json({ 
+        error: 'OpenAI quota exceeded'        // Out of credits
+      })
+    } else if (error.code === 'rate_limit_exceeded') {
+      return res.status(429).json({ 
+        error: 'OpenAI rate limit exceeded'   // Too many requests to OpenAI
+      })
+    }
+    
+    // Generic error response
+    res.status(500).json({ 
+      error: 'An error occurred while processing your request' 
+    })
+  }
+})
 
 // === MAIN AI ENDPOINT ===
 // This is where the magic happens - handles POST requests to /api/gpt

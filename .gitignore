@@ -4,6 +4,7 @@ node_modules/
 # Environment variables
 .env
 project.env
+*.env
 
 # Build outputs
 build/

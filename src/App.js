@@ -6,6 +6,7 @@ import AuthForm from './AuthForm';                           // Authentication f
 import PasswordReset from './PasswordReset';                 // Password reset component
 import ConversationSidebar from './ConversationSidebar';     // Conversation sidebar component
 import { encryptText, decryptText } from './encryption';     // Encryption utilities
+import PublicChat from './PublicChat';                       // Public chat component
 import './App.css';                                          // Styling for this component
 
 // === SAFE TEXT FORMATTER COMPONENT ===
@@ -35,6 +36,7 @@ function App() {
   const [user, setUser] = useState(null);                  // Current authenticated user
   const [loading, setLoading] = useState(true);            // Loading state for auth check
   const [showPasswordReset, setShowPasswordReset] = useState(false); // Show password reset form
+  const [showAuthForm, setShowAuthForm] = useState(false); // Show auth form for sign up
   const [currentConversation, setCurrentConversation] = useState(null); // Current selected conversation
   const [messages, setMessages] = useState([]);            // Array of all chat messages
   const [inputMessage, setInputMessage] = useState('');    // What user is currently typing
@@ -89,6 +91,7 @@ function App() {
   // === AUTHENTICATION HANDLERS ===
   const handleAuthSuccess = (user) => {
     setUser(user)
+    setShowAuthForm(false) // Hide auth form after successful login
   }
 
   const handleSignOut = async () => {
@@ -96,6 +99,12 @@ function App() {
     setUser(null)
     setCurrentConversation(null)
     setMessages([])
+  }
+
+  // === PUBLIC CHAT HANDLER ===
+  const handleSignUp = () => {
+    // Show the auth form for sign up
+    setShowAuthForm(true)
   }
 
   // === SIDE EFFECT: SCROLL WHEN MESSAGES CHANGE ===
@@ -372,9 +381,14 @@ function App() {
     return <PasswordReset onComplete={() => setShowPasswordReset(false)} />;
   }
 
-  // Show authentication form if user is not logged in
-  if (!user) {
+  // Show auth form if user wants to sign up
+  if (showAuthForm) {
     return <AuthForm onAuthSuccess={handleAuthSuccess} />;
+  }
+
+  // Show public chat if user is not logged in
+  if (!user) {
+    return <PublicChat onSignUp={handleSignUp} />;
   }
 
   // Show main chat interface if user is authenticated
