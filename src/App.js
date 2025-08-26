@@ -71,9 +71,16 @@ function App() {
           setShowPasswordReset(true)
           setLoading(false)
         } else if (event === 'SIGNED_IN') {
-          setUser(session?.user ?? null)
-          setShowPasswordReset(false)
-          setLoading(false)
+          // Check if user email is confirmed
+          if (session?.user?.email_confirmed_at) {
+            setUser(session?.user ?? null)
+            setShowPasswordReset(false)
+            setLoading(false)
+          } else {
+            // User signed in but email not confirmed
+            setUser(null)
+            setLoading(false)
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setShowPasswordReset(false)
@@ -397,6 +404,7 @@ function App() {
       
        {/* === SIDEBAR SECTION === */}
        <ConversationSidebar
+         user={user}
          currentConversationId={currentConversation?.id}
          onConversationSelect={handleConversationSelect}
          onNewConversation={handleNewConversation}

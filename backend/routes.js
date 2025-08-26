@@ -12,8 +12,9 @@ const {
   addMessage
 } = require('./databaseRoutes');
 const { healthCheck, testModeration } = require('./utilityRoutes');
+const { handleCleanupUnconfirmed } = require('./authRoutes');
 
-const setupRoutes = (app, { supabase, openai, db }) => {
+const setupRoutes = (app, { supabase, supabaseAdmin, openai, db }) => {
   // === PUBLIC AI ENDPOINT ===
   app.post('/api/public/gpt', app.locals.publicRateLimit, (req, res) => {
     handlePublicGpt(req, res, { openai, systemInstructions });
@@ -80,6 +81,13 @@ const setupRoutes = (app, { supabase, openai, db }) => {
   // Moderation test endpoint
   app.post('/test-moderation', (req, res) => {
     testModeration(req, res, { openai });
+  });
+
+  // === AUTHENTICATION ENDPOINTS ===
+  
+  // Clean up unconfirmed users with same email
+  app.post('/api/auth/cleanup-unconfirmed', (req, res) => {
+    handleCleanupUnconfirmed(req, res, { supabase: supabaseAdmin });
   });
 };
 

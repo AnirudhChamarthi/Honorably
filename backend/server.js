@@ -20,6 +20,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // === SUPABASE CLIENT SETUP ===
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 // Validate Supabase environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -27,7 +28,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   process.exit(1);
 }
 
+if (!supabaseServiceRoleKey) {
+  console.error('❌ SUPABASE_SERVICE_ROLE_KEY is required in environment variables');
+  process.exit(1);
+}
+
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
 
 // === MIDDLEWARE SETUP ===
 // These run before every request
@@ -80,7 +87,7 @@ const openai = new OpenAI({
 
 // === ROUTE SETUP ===
 const { setupRoutes } = require('./routes');
-setupRoutes(app, { supabase, openai, db });
+setupRoutes(app, { supabase, supabaseAdmin, openai, db });
 
 // === CATCH-ALL ROUTE FOR REACT APP ===
 // Serve React app for any non-API routes (SPA routing)

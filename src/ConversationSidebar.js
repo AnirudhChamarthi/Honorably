@@ -6,6 +6,7 @@ import { encryptText, decryptText } from './encryption' // Encryption utilities
 import './ConversationSidebar.css'
 
 const ConversationSidebar = ({ 
+  user,
   currentConversationId, 
   onConversationSelect, 
   onNewConversation 
@@ -17,10 +18,12 @@ const ConversationSidebar = ({
   const [canAddConversation, setCanAddConversation] = useState(true)
   const [editingId, setEditingId] = useState(null)
 
-  // === LOAD CONVERSATIONS ON COMPONENT MOUNT ===
+  // === LOAD CONVERSATIONS WHEN USER IS AVAILABLE ===
   useEffect(() => {
-    loadConversations()
-  }, [])
+    if (user) {
+      loadConversations()
+    }
+  }, [user])
 
   // === LOAD USER'S CONVERSATIONS ===
   const loadConversations = async () => {
@@ -369,7 +372,7 @@ const ConversationSidebar = ({
       </div>
 
       {/* === ERROR MESSAGE === */}
-      {error && (
+      {error && user && (
         <div className="sidebar-error">
           {error}
           <br />
@@ -379,7 +382,9 @@ const ConversationSidebar = ({
 
       {/* === CONVERSATION LIST === */}
       <div className="conversation-list">
-        {loading ? (
+        {!user ? (
+          <div className="loading-message">Loading user session...</div>
+        ) : loading ? (
           <div className="loading-message">Loading conversations...</div>
         ) : conversations.length === 0 ? (
           <div className="empty-state">
