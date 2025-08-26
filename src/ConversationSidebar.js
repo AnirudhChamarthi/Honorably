@@ -2,6 +2,7 @@
 // Sidebar for managing user conversations with add/delete functionality
 import React, { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import { encryptText, decryptText } from './encryption' // Encryption utilities
 import './ConversationSidebar.css'
 
 const ConversationSidebar = ({ 
@@ -48,7 +49,26 @@ const ConversationSidebar = ({
 
       const data = await response.json()
       console.log('Backend connection successful, conversations:', data)
-      setConversations(data || [])
+
+      // Decrypt conversation titles using user's ID
+      let decryptedConversations = data || [];
+      const userId = session.user.id;
+      
+      if (userId) {
+        decryptedConversations = await Promise.all(
+          (data || []).map(async (conversation) => {
+            try {
+              const decryptedTitle = await decryptText(conversation.title, userId);
+              return { ...conversation, title: decryptedTitle };
+            } catch (error) {
+              console.error('Error decrypting title:', error);
+              return conversation; // Return original if decryption fails
+            }
+          })
+        );
+      }
+
+      setConversations(decryptedConversations);
       setCanAddConversation((data || []).length < 3)
     } catch (error) {
       console.error('Error loading conversations:', error)
@@ -81,6 +101,19 @@ const ConversationSidebar = ({
         throw new Error('No active session')
       }
 
+      // Encrypt the "New Conversation" title
+      const userId = session.user.id;
+      let encryptedTitle = 'New Conversation';
+      
+      if (userId) {
+        try {
+          encryptedTitle = await encryptText('New Conversation', userId);
+        } catch (error) {
+          console.error('Error encrypting title:', error);
+          // Fall back to plaintext if encryption fails
+        }
+      }
+
       const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
       const response = await fetch(`${backendUrl}/api/conversations`, {
         method: 'POST',
@@ -88,7 +121,7 @@ const ConversationSidebar = ({
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ title: 'New Conversation' })
+        body: JSON.stringify({ title: encryptedTitle })
       })
 
       if (!response.ok) {
@@ -101,13 +134,26 @@ const ConversationSidebar = ({
         }
       } else {
         const result = await response.json()
+        
+        // Decrypt the conversation title for display
+        let decryptedConversation = result.conversation;
+        if (userId) {
+          try {
+            const decryptedTitle = await decryptText(result.conversation.title, userId);
+            decryptedConversation = { ...result.conversation, title: decryptedTitle };
+          } catch (error) {
+            console.error('Error decrypting title:', error);
+            // Use original if decryption fails
+          }
+        }
+        
         // Add new conversation to list and select it
         setConversations(prev => {
-          const newConversations = [result.conversation, ...prev]
+          const newConversations = [decryptedConversation, ...prev]
           setCanAddConversation(newConversations.length < 3)
           return newConversations
         })
-        onNewConversation(result.conversation)
+        onNewConversation(decryptedConversation)
       }
     } catch (error) {
       console.error('Error creating conversation:', error)
@@ -141,6 +187,19 @@ const ConversationSidebar = ({
         throw new Error('No active session')
       }
 
+      // Encrypt the new title before sending to backend
+      const userId = session.user.id;
+      let encryptedTitle = newTitle;
+      
+      if (userId) {
+        try {
+          encryptedTitle = await encryptText(newTitle, userId);
+        } catch (error) {
+          console.error('Error encrypting title:', error);
+          // Fall back to plaintext if encryption fails
+        }
+      }
+
       const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
       const response = await fetch(`${backendUrl}/api/conversations/${conversationId}`, {
         method: 'PUT',
@@ -148,7 +207,7 @@ const ConversationSidebar = ({
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ title: newTitle })
+        body: JSON.stringify({ title: encryptedTitle })
       })
 
       if (!response.ok) {

@@ -5,6 +5,7 @@ import { supabase } from './supabaseClient';                 // Supabase client 
 import AuthForm from './AuthForm';                           // Authentication form component
 import PasswordReset from './PasswordReset';                 // Password reset component
 import ConversationSidebar from './ConversationSidebar';     // Conversation sidebar component
+import { encryptText } from './encryption';                  // Encryption utilities
 import './App.css';                                          // Styling for this component
 
 // === SAFE TEXT FORMATTER COMPONENT ===
@@ -279,6 +280,19 @@ function App() {
         throw new Error('No active session')
       }
 
+      // Encrypt the title using user's ID
+      const userId = session.user.id;
+      let encryptedTitle = title;
+      
+      if (userId) {
+        try {
+          encryptedTitle = await encryptText(title, userId);
+        } catch (error) {
+          console.error('Error encrypting title:', error);
+          // Fall back to plaintext if encryption fails
+        }
+      }
+
       const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
       const response = await fetch(`${backendUrl}/api/conversations/${conversationId}`, {
         method: 'PUT',
@@ -286,7 +300,7 @@ function App() {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ title: title })
+        body: JSON.stringify({ title: encryptedTitle })
       })
 
       if (!response.ok) {

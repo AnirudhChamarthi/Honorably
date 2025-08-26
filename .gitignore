@@ -31,3 +31,4 @@ database_schema.sql
 
 # SQL files
 *.sql
+sql/
