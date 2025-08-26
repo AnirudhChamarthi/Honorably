@@ -3,6 +3,7 @@ const { authenticateUser } = require('./auth');
 const { handlePublicGpt } = require('./publicGpt');
 const { handleMainGpt } = require('./mainGpt');
 const { systemInstructions } = require('./aiInstructions');
+const { handleResendConfirmation } = require('./authRoutes');
 const {
   createConversation,
   getUserConversations,
@@ -13,7 +14,7 @@ const {
 } = require('./databaseRoutes');
 const { healthCheck, testModeration } = require('./utilityRoutes');
 
-const setupRoutes = (app, { supabase, openai, db }) => {
+const setupRoutes = (app, { supabase, supabaseAdmin, openai, db }) => {
   // === PUBLIC AI ENDPOINT ===
   app.post('/api/public/gpt', app.locals.publicRateLimit, (req, res) => {
     handlePublicGpt(req, res, { openai, systemInstructions });
@@ -80,6 +81,13 @@ const setupRoutes = (app, { supabase, openai, db }) => {
   // Moderation test endpoint
   app.post('/test-moderation', (req, res) => {
     testModeration(req, res, { openai });
+  });
+
+  // === AUTHENTICATION ENDPOINTS ===
+  
+  // Resend confirmation email
+  app.post('/api/auth/resend-confirmation', (req, res) => {
+    handleResendConfirmation(req, res, { supabase: supabaseAdmin });
   });
 };
 

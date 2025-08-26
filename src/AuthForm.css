@@ -166,6 +166,50 @@
   color: #2563eb;
 }
 
+/* === EMAIL CONFIRMATION STYLES === */
+.email-confirmation {
+  text-align: center;
+}
+
+.confirmation-message {
+  margin-bottom: 24px;
+}
+
+.confirmation-message h3 {
+  color: #d1d5db;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.confirmation-message p {
+  color: #9ca3af;
+  font-size: 14px;
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.email-display {
+  color: #2563eb !important;
+  font-weight: 600;
+  font-size: 15px !important;
+  background-color: rgba(37, 99, 235, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 12px 0 !important;
+  word-break: break-all;
+}
+
+.resend-button {
+  background-color: #059669;
+  margin-bottom: 12px;
+}
+
+.resend-button:hover:not(:disabled) {
+  background-color: #047857;
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
+}
+
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 480px) {
   .auth-form {

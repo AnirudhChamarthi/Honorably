@@ -71,9 +71,12 @@ function App() {
           setShowPasswordReset(true)
           setLoading(false)
         } else if (event === 'SIGNED_IN') {
-          setUser(session?.user ?? null)
-          setShowPasswordReset(false)
-          setLoading(false)
+          // Check if user just confirmed their email
+          if (session?.user?.email_confirmed_at) {
+            setUser(session?.user ?? null)
+            setShowPasswordReset(false)
+            setLoading(false)
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setShowPasswordReset(false)

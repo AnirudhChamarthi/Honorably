@@ -8,9 +8,11 @@ const AuthForm = ({ onAuthSuccess }) => {
   // === STATE MANAGEMENT ===
   const [isSignUp, setIsSignUp] = useState(false)  // Toggle between login/signup
   const [showForgotPassword, setShowForgotPassword] = useState(false)  // Toggle forgot password view
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false)  // Toggle email confirmation view
   const [email, setEmail] = useState('')           // User email input
   const [password, setPassword] = useState('')     // User password input
   const [loading, setLoading] = useState(false)    // Loading state for form submission
+  const [resendLoading, setResendLoading] = useState(false)  // Loading state for resend
   const [error, setError] = useState('')           // Error message display
   const [success, setSuccess] = useState('')       // Success message display
 
@@ -42,12 +44,47 @@ const AuthForm = ({ onAuthSuccess }) => {
       if (result.error) {
         setError(result.error.message)             // Display error message
       } else if (result.data.user) {
-        onAuthSuccess(result.data.user)            // Pass user to parent component
+        if (isSignUp && !result.data.user.email_confirmed_at) {
+          // Show email confirmation screen for new signups
+          setShowEmailConfirmation(true)
+          setSuccess('Account created! Please check your email to confirm your account.')
+        } else {
+          onAuthSuccess(result.data.user)            // Pass user to parent component
+        }
       }
     } catch (error) {
       setError('An unexpected error occurred')     // Handle unexpected errors
     } finally {
       setLoading(false)                            // Hide loading state
+    }
+  }
+
+  // === RESEND CONFIRMATION EMAIL ===
+  const handleResendConfirmation = async () => {
+    setResendLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const response = await fetch('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to resend confirmation email')
+      } else {
+        setSuccess('Confirmation email sent! Please check your inbox.')
+      }
+    } catch (error) {
+      setError('An unexpected error occurred')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -102,8 +139,44 @@ const AuthForm = ({ onAuthSuccess }) => {
           </p>
         </div>
 
-        {/* === FORGOT PASSWORD FORM === */}
-        {showForgotPassword ? (
+        {/* === EMAIL CONFIRMATION SCREEN === */}
+        {showEmailConfirmation ? (
+          <div className="email-confirmation">
+            <div className="confirmation-message">
+              <h3>Check Your Email</h3>
+              <p>We've sent a confirmation link to:</p>
+              <p className="email-display">{email}</p>
+              <p>Click the link in your email to activate your account.</p>
+            </div>
+
+            {/* === ERROR/SUCCESS MESSAGE === */}
+            {error && <div className="error-message">{error}</div>}
+            {success && <div className="success-message">{success}</div>}
+
+            {/* === RESEND BUTTON === */}
+            <button 
+              type="button" 
+              className="auth-button resend-button"
+              onClick={handleResendConfirmation}
+              disabled={resendLoading}
+            >
+              {resendLoading ? 'Sending...' : 'Resend Confirmation Email'}
+            </button>
+
+            {/* === BACK TO SIGN IN === */}
+            <button
+              type="button"
+              className="toggle-auth"
+              onClick={() => {
+                setShowEmailConfirmation(false)
+                setError('')
+                setSuccess('')
+              }}
+            >
+              Back to Sign In
+            </button>
+          </div>
+        ) : showForgotPassword ? (
           <form onSubmit={handleForgotPassword}>
             {/* === EMAIL FIELD === */}
             <div className="form-group">
