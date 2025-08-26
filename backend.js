@@ -7,6 +7,7 @@ const session = require('express-session'); // Session management for privacy-fr
 const crypto = require('crypto');        // For hashing (privacy protection)
 const path = require('path');            // For file path operations
 const { createClient } = require('@supabase/supabase-js'); // Supabase client for authentication
+const db = require('./database-backend'); // Database operations module
 require('dotenv').config({ path: 'project.env' }); // Load environment variables from project.env file
 
 // === SERVER INITIALIZATION ===
@@ -312,6 +313,110 @@ ENFORCEMENT: Apply this rule to EVERY message. No exceptions.`;
         details: error.message 
       });
     }
+  }
+});
+
+// === DATABASE API ENDPOINTS ===
+
+// Create new conversation
+app.post('/api/conversations', authenticateUser, async (req, res) => {
+  console.log('🔵 POST /api/conversations called');
+  try {
+    const { title } = req.body;
+    const userId = req.user.id;
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const result = await db.createConversation(userId, title);
+    res.json(result);
+  } catch (error) {
+    console.error('Error creating conversation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all conversations for user
+app.get('/api/conversations', authenticateUser, async (req, res) => {
+  console.log('🔵 GET /api/conversations called');
+  try {
+    const userId = req.user.id;
+    const conversations = await db.getUserConversations(userId);
+    res.json(conversations);
+  } catch (error) {
+    console.error('Error loading conversations:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update conversation title
+app.put('/api/conversations/:id', authenticateUser, async (req, res) => {
+  console.log('🔵 PUT /api/conversations/:id called');
+  try {
+    const { title } = req.body;
+    const conversationId = req.params.id;
+    const userId = req.user.id;
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const result = await db.updateConversationTitle(conversationId, userId, title);
+    res.json(result);
+  } catch (error) {
+    console.error('Error updating conversation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete conversation
+app.delete('/api/conversations/:id', authenticateUser, async (req, res) => {
+  console.log('🔵 DELETE /api/conversations/:id called');
+  try {
+    const conversationId = req.params.id;
+    const userId = req.user.id;
+
+    const result = await db.deleteConversation(conversationId, userId);
+    res.json(result);
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get messages for a conversation
+app.get('/api/conversations/:id/messages', authenticateUser, async (req, res) => {
+  console.log('🔵 GET /api/conversations/:id/messages called');
+  try {
+    const conversationId = req.params.id;
+    const userId = req.user.id;
+
+    const messages = await db.getConversationMessages(conversationId, userId);
+    res.json(messages);
+  } catch (error) {
+    console.error('Error loading messages:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add message to conversation
+app.post('/api/conversations/:id/messages', authenticateUser, async (req, res) => {
+  console.log('🔵 POST /api/conversations/:id/messages called');
+  try {
+    const { role, content } = req.body;
+    const conversationId = req.params.id;
+    const userId = req.user.id;
+    
+    if (!role || !content) {
+      return res.status(400).json({ error: 'Role and content are required' });
+    }
+
+    const result = await db.addMessage(conversationId, userId, role, content);
+    res.json(result);
+  } catch (error) {
+    console.error('Error adding message:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
