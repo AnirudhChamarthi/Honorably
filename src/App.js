@@ -5,7 +5,7 @@ import { supabase } from './supabaseClient';                 // Supabase client 
 import AuthForm from './AuthForm';                           // Authentication form component
 import PasswordReset from './PasswordReset';                 // Password reset component
 import ConversationSidebar from './ConversationSidebar';     // Conversation sidebar component
-import { encryptText } from './encryption';                  // Encryption utilities
+import { encryptText, decryptText } from './encryption';     // Encryption utilities
 import './App.css';                                          // Styling for this component
 
 // === SAFE TEXT FORMATTER COMPONENT ===
@@ -144,8 +144,26 @@ function App() {
 
       const data = await response.json()
 
-      if (data && data.length > 0) {
-        setMessages(data)
+      // Decrypt message contents using user's ID
+      let decryptedMessages = data || [];
+      const userId = session.user.id;
+      
+      if (userId && data && data.length > 0) {
+        decryptedMessages = await Promise.all(
+          data.map(async (message) => {
+            try {
+              const decryptedContent = await decryptText(message.content, userId);
+              return { ...message, content: decryptedContent };
+            } catch (error) {
+              console.error('Error decrypting message content:', error);
+              return message; // Return original if decryption fails
+            }
+          })
+        );
+      }
+
+      if (decryptedMessages && decryptedMessages.length > 0) {
+        setMessages(decryptedMessages)
       } else {
         // Show welcome message for empty conversation
         setMessages([{
@@ -240,6 +258,19 @@ function App() {
         throw new Error('No active session')
       }
 
+      // Encrypt message content using user's ID
+      const userId = session.user.id;
+      let encryptedContent = messageObj.content;
+      
+      if (userId) {
+        try {
+          encryptedContent = await encryptText(messageObj.content, userId);
+        } catch (error) {
+          console.error('Error encrypting message content:', error);
+          // Fall back to plaintext if encryption fails
+        }
+      }
+
       const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
       const response = await fetch(`${backendUrl}/api/conversations/${currentConversation.id}/messages`, {
         method: 'POST',
@@ -249,7 +280,7 @@ function App() {
         },
         body: JSON.stringify({
           role: messageObj.role,
-          content: messageObj.content
+          content: encryptedContent
         })
       })
 
