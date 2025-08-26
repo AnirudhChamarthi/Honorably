@@ -123,15 +123,25 @@ function App() {
   // === LOAD MESSAGES FOR SELECTED CONVERSATION ===
   const loadConversationMessages = async (conversationId) => {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-
-      if (error) {
-        throw error
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session')
       }
+
+      const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
+      const response = await fetch(`${backendUrl}/api/conversations/${conversationId}/messages`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
 
       if (data && data.length > 0) {
         setMessages(data)
@@ -224,16 +234,27 @@ function App() {
   // === SAVE MESSAGE TO DATABASE ===
   const saveMessageToDatabase = async (messageObj) => {
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert([{
-          conversation_id: currentConversation.id,
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session')
+      }
+
+      const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
+      const response = await fetch(`${backendUrl}/api/conversations/${currentConversation.id}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           role: messageObj.role,
           content: messageObj.content
-        }])
+        })
+      })
 
-      if (error) {
-        console.error('Error saving message to database:', error)
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Error saving message to database:', errorData.error)
       } else {
         // Update conversation title if it's still "New Conversation" and this is the first user message
         if (currentConversation.title === 'New Conversation' && messageObj.role === 'user') {
@@ -253,13 +274,24 @@ function App() {
         ? userMessage.substring(0, 50) + '...' 
         : userMessage
 
-      const { error } = await supabase
-        .from('conversations')
-        .update({ title: title })
-        .eq('id', conversationId)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session')
+      }
 
-      if (error) {
-        console.error('Error updating conversation title:', error)
+      const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
+      const response = await fetch(`${backendUrl}/api/conversations/${conversationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: title })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Error updating conversation title:', errorData.error)
       } else {
         // Update local state
         setCurrentConversation(prev => prev ? { ...prev, title: title } : null)

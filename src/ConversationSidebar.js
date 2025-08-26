@@ -27,18 +27,27 @@ const ConversationSidebar = ({
       setLoading(true)
       setError('')
 
-             console.log('Testing database connection...')
-       const { data, error } = await supabase
-         .from('conversations')
-         .select('*')
-         .order('updated_at', { ascending: false })
-
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
+                   const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session')
       }
 
-      console.log('Database connection successful, conversations:', data)
+      console.log('Loading conversations through backend...')
+      const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
+      const response = await fetch(`${backendUrl}/api/conversations`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('Backend connection successful, conversations:', data)
       setConversations(data || [])
       setCanAddConversation((data || []).length < 3)
     } catch (error) {
@@ -67,33 +76,38 @@ const ConversationSidebar = ({
 
       console.log('Creating conversation for user:', user.id)
 
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert([
-          { 
-            title: 'New Conversation',
-            user_id: user.id
-          }
-        ])
-        .select()
-        .single()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session')
+      }
 
-      if (error) {
-        console.error('Supabase error:', error)
-        if (error.message.includes('Maximum 3 conversations')) {
+      const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
+      const response = await fetch(`${backendUrl}/api/conversations`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'New Conversation' })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        if (errorData.error && errorData.error.includes('Maximum 3 conversations')) {
           setError('Maximum 3 conversations reached')
           setCanAddConversation(false)
         } else {
-          throw error
+          throw new Error(errorData.error || `HTTP ${response.status}`)
         }
       } else {
+        const result = await response.json()
         // Add new conversation to list and select it
         setConversations(prev => {
-          const newConversations = [data, ...prev]
+          const newConversations = [result.conversation, ...prev]
           setCanAddConversation(newConversations.length < 3)
           return newConversations
         })
-        onNewConversation(data)
+        onNewConversation(result.conversation)
       }
     } catch (error) {
       console.error('Error creating conversation:', error)
@@ -122,11 +136,25 @@ const ConversationSidebar = ({
         throw new Error('User not authenticated')
       }
 
-      const { error } = await supabase
-        .from('conversations')
-        .update({ title: newTitle })
-        .eq('id', conversationId)
-        .eq('user_id', user.id) // Ensure user owns the conversation
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('No active session')
+      }
+
+      const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
+      const response = await fetch(`${backendUrl}/api/conversations/${conversationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: newTitle })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
 
       if (error) {
         throw error
@@ -172,33 +200,23 @@ const ConversationSidebar = ({
       console.log('User authenticated:', user.id)
       console.log('Session valid:', !!session)
 
-      // First, let's test if we can read the conversation
-      console.log('Testing conversation access...')
-      const { data: testData, error: testError } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', conversationId)
-        .single()
+      // Delete the conversation through backend
+      console.log('Deleting conversation through backend...')
+      const backendUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'
+      const response = await fetch(`${backendUrl}/api/conversations/${conversationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
 
-      if (testError) {
-        console.error('Cannot read conversation:', testError)
-        throw new Error('Cannot access conversation: ' + testError.message)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
-      console.log('Conversation found:', testData)
-
-      // Delete the conversation entirely
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId)
-
-      if (error) {
-        console.error('Supabase delete error:', error)
-        throw error
-      }
-
-             console.log('Delete successful')
+      console.log('Delete successful')
 
       // Remove from local state and update conversation count
       setConversations(prev => {
