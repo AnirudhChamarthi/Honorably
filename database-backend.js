@@ -15,9 +15,18 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // === CONVERSATION ENDPOINTS ===
 
 // Create new conversation
-async function createConversation(userId, title) {
+async function createConversation(userId, title, accessToken) {
   try {
-    const { data, error } = await supabase
+    // Create authenticated Supabase client with user's session token
+    const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
+
+    const { data, error } = await authenticatedSupabase
       .from('conversations')
       .insert([{ 
         title: title, 
@@ -39,9 +48,18 @@ async function createConversation(userId, title) {
 }
 
 // Get all conversations for user
-async function getUserConversations(userId) {
+async function getUserConversations(userId, accessToken) {
   try {
-    const { data, error } = await supabase
+    // Create authenticated Supabase client with user's session token
+    const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
+
+    const { data, error } = await authenticatedSupabase
       .from('conversations')
       .select('*')
       .eq('user_id', userId)
@@ -60,9 +78,18 @@ async function getUserConversations(userId) {
 }
 
 // Update conversation title
-async function updateConversationTitle(conversationId, userId, newTitle) {
+async function updateConversationTitle(conversationId, userId, newTitle, accessToken) {
   try {
-    const { error } = await supabase
+    // Create authenticated Supabase client with user's session token
+    const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
+
+    const { error } = await authenticatedSupabase
       .from('conversations')
       .update({ title: newTitle })
       .eq('id', conversationId)
@@ -81,10 +108,19 @@ async function updateConversationTitle(conversationId, userId, newTitle) {
 }
 
 // Delete conversation and all its messages
-async function deleteConversation(conversationId, userId) {
+async function deleteConversation(conversationId, userId, accessToken) {
   try {
+    // Create authenticated Supabase client with user's session token
+    const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
+
     // First delete all messages in the conversation
-    const { error: messagesError } = await supabase
+    const { error: messagesError } = await authenticatedSupabase
       .from('messages')
       .delete()
       .eq('conversation_id', conversationId);
@@ -95,7 +131,7 @@ async function deleteConversation(conversationId, userId) {
     }
 
     // Then delete the conversation
-    const { error } = await supabase
+    const { error } = await authenticatedSupabase
       .from('conversations')
       .delete()
       .eq('id', conversationId)
@@ -116,10 +152,19 @@ async function deleteConversation(conversationId, userId) {
 // === MESSAGE ENDPOINTS ===
 
 // Get all messages for a conversation
-async function getConversationMessages(conversationId, userId) {
+async function getConversationMessages(conversationId, userId, accessToken) {
   try {
+    // Create authenticated Supabase client with user's session token
+    const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
+
     // First verify user owns the conversation
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await authenticatedSupabase
       .from('conversations')
       .select('user_id')
       .eq('id', conversationId)
@@ -134,7 +179,7 @@ async function getConversationMessages(conversationId, userId) {
     }
 
     // Get messages
-    const { data, error } = await supabase
+    const { data, error } = await authenticatedSupabase
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
@@ -153,10 +198,19 @@ async function getConversationMessages(conversationId, userId) {
 }
 
 // Add new message to conversation
-async function addMessage(conversationId, userId, role, content) {
+async function addMessage(conversationId, userId, role, content, accessToken) {
   try {
+    // Create authenticated Supabase client with user's session token
+    const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    });
+
     // First verify user owns the conversation
-    const { data: conversation, error: convError } = await supabase
+    const { data: conversation, error: convError } = await authenticatedSupabase
       .from('conversations')
       .select('user_id')
       .eq('id', conversationId)
@@ -171,7 +225,7 @@ async function addMessage(conversationId, userId, role, content) {
     }
 
     // Add message
-    const { data, error } = await supabase
+    const { data, error } = await authenticatedSupabase
       .from('messages')
       .insert([{
         conversation_id: conversationId,

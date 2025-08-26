@@ -329,7 +329,8 @@ app.post('/api/conversations', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    const result = await db.createConversation(userId, title);
+    const accessToken = req.headers.authorization.substring(7); // Remove 'Bearer ' prefix
+    const result = await db.createConversation(userId, title, accessToken);
     res.json(result);
   } catch (error) {
     console.error('Error creating conversation:', error);
@@ -342,7 +343,8 @@ app.get('/api/conversations', authenticateUser, async (req, res) => {
   console.log('🔵 GET /api/conversations called');
   try {
     const userId = req.user.id;
-    const conversations = await db.getUserConversations(userId);
+    const accessToken = req.headers.authorization.substring(7); // Remove 'Bearer ' prefix
+    const conversations = await db.getUserConversations(userId, accessToken);
     res.json(conversations);
   } catch (error) {
     console.error('Error loading conversations:', error);
@@ -362,7 +364,8 @@ app.put('/api/conversations/:id', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    const result = await db.updateConversationTitle(conversationId, userId, title);
+    const accessToken = req.headers.authorization.substring(7); // Remove 'Bearer ' prefix
+    const result = await db.updateConversationTitle(conversationId, userId, title, accessToken);
     res.json(result);
   } catch (error) {
     console.error('Error updating conversation:', error);
@@ -377,7 +380,8 @@ app.delete('/api/conversations/:id', authenticateUser, async (req, res) => {
     const conversationId = req.params.id;
     const userId = req.user.id;
 
-    const result = await db.deleteConversation(conversationId, userId);
+    const accessToken = req.headers.authorization.substring(7); // Remove 'Bearer ' prefix
+    const result = await db.deleteConversation(conversationId, userId, accessToken);
     res.json(result);
   } catch (error) {
     console.error('Error deleting conversation:', error);
@@ -392,7 +396,8 @@ app.get('/api/conversations/:id/messages', authenticateUser, async (req, res) =>
     const conversationId = req.params.id;
     const userId = req.user.id;
 
-    const messages = await db.getConversationMessages(conversationId, userId);
+    const accessToken = req.headers.authorization.substring(7); // Remove 'Bearer ' prefix
+    const messages = await db.getConversationMessages(conversationId, userId, accessToken);
     res.json(messages);
   } catch (error) {
     console.error('Error loading messages:', error);
@@ -412,7 +417,8 @@ app.post('/api/conversations/:id/messages', authenticateUser, async (req, res) =
       return res.status(400).json({ error: 'Role and content are required' });
     }
 
-    const result = await db.addMessage(conversationId, userId, role, content);
+    const accessToken = req.headers.authorization.substring(7); // Remove 'Bearer ' prefix
+    const result = await db.addMessage(conversationId, userId, role, content, accessToken);
     res.json(result);
   } catch (error) {
     console.error('Error adding message:', error);
