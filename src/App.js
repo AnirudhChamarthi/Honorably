@@ -133,7 +133,7 @@ function App() {
     setCurrentConversation(conversation)
     setMessages([{
       role: 'assistant',
-      content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material. I believe in you!'
+      content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material, rather than giving you direct solutions. I believe in you!'
     }])
   }
 

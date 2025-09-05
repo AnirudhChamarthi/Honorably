@@ -27,7 +27,7 @@ function PublicChat({ onSignUp }) {
   // === STATE MANAGEMENT ===
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: 'Hello! I\'m Honorably, your educational AI assistant. I\'m here to help you learn and understand any topic. Feel free to ask me anything!'
+    content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material, rather than giving you direct solutions. I believe in you!'
   }]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
