@@ -41,6 +41,7 @@ function App() {
   const [messages, setMessages] = useState([]);            // Array of all chat messages
   const [inputMessage, setInputMessage] = useState('');    // What user is currently typing
   const [isLoading, setIsLoading] = useState(false);      // True when waiting for AI response
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // Mobile sidebar toggle state
   const messagesEndRef = useRef(null);                    // Reference to scroll to bottom
 
   // === AUTO-SCROLL TO BOTTOM FUNCTION ===
@@ -95,6 +96,19 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // === MOBILE SIDEBAR RESPONSIVE EFFECT ===
+  useEffect(() => {
+    const handleResize = () => {
+      // Close mobile sidebar when window is resized to desktop size
+      if (window.innerWidth > 768) {
+        setIsMobileSidebarOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   // === AUTHENTICATION HANDLERS ===
   const handleAuthSuccess = (user) => {
     setUser(user)
@@ -127,6 +141,9 @@ function App() {
     if (conversation) {
       await loadConversationMessages(conversation.id)
     }
+    
+    // Close mobile sidebar after selecting a conversation
+    setIsMobileSidebarOpen(false)
   }
 
   const handleNewConversation = (conversation) => {
@@ -135,6 +152,9 @@ function App() {
       role: 'assistant',
       content: 'Hello! I\'m your educational AI assistant. My name is Honorably. I am a GPT-4o model that is designed to help you learn and understand the material, rather than giving you direct solutions. I believe in you!'
     }])
+    
+    // Close mobile sidebar after creating a new conversation
+    setIsMobileSidebarOpen(false)
   }
 
   // === LOAD MESSAGES FOR SELECTED CONVERSATION ===
@@ -408,6 +428,8 @@ function App() {
          currentConversationId={currentConversation?.id}
          onConversationSelect={handleConversationSelect}
          onNewConversation={handleNewConversation}
+         isMobileOpen={isMobileSidebarOpen}
+         onMobileClose={() => setIsMobileSidebarOpen(false)}
          key={currentConversation?.id} // Force re-render when conversation changes
        />
 
@@ -415,6 +437,19 @@ function App() {
       <div className="main-chat-area">
         {/* === HEADER SECTION === */}
         <header className="header">                        {/* Top navigation bar */}
+          {/* === MOBILE MENU BUTTON === */}
+          <button 
+            className="mobile-menu-button"
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            aria-label="Toggle conversation sidebar"
+          >
+            <span className={`hamburger ${isMobileSidebarOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+          
           <div className="logo">                           {/* Logo container */}
             <span className="logo-icon">🎓</span>          {/* Emoji icon */}
             <a 

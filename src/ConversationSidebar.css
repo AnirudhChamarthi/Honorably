@@ -222,14 +222,40 @@
   background-color: #6b7280;
 }
 
+/* === MOBILE OVERLAY === */
+.mobile-sidebar-overlay {
+  display: none;
+}
+
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 768px) {
+  .mobile-sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
   .conversation-sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 300px;
-    border-right: none;
-    border-bottom: 1px solid #444654;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    border-right: 1px solid #444654;
+    border-bottom: none;
+  }
+  
+  .conversation-sidebar.mobile-open {
+    transform: translateX(0);
   }
   
   .sidebar-header {
@@ -237,6 +263,16 @@
   }
   
   .conversation-list {
-    max-height: 200px;
+    max-height: none;
+    flex: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

@@ -9,7 +9,9 @@ const ConversationSidebar = ({
   user,
   currentConversationId, 
   onConversationSelect, 
-  onNewConversation 
+  onNewConversation,
+  isMobileOpen,
+  onMobileClose
 }) => {
   // === STATE MANAGEMENT ===
   const [conversations, setConversations] = useState([])
@@ -357,7 +359,16 @@ const ConversationSidebar = ({
 
     // === RENDER SIDEBAR ===
   return (
-    <div className="conversation-sidebar">
+    <>
+      {/* Mobile overlay backdrop */}
+      {isMobileOpen && (
+        <div 
+          className="mobile-sidebar-overlay"
+          onClick={onMobileClose}
+        />
+      )}
+      
+      <div className={`conversation-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
       {/* === HEADER === */}
       <div className="sidebar-header">
         <h3>Conversations</h3>
@@ -428,7 +439,8 @@ const ConversationSidebar = ({
           {conversations.length}/3 conversations
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 
